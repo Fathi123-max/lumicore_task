@@ -145,4 +145,43 @@ void main() {
       expect(failureResult.failure, isA<InvalidInputFailure>());
     });
   });
+
+  group('getLastCachedWeather', () {
+    test('should return cached weather when it exists', () async {
+      // Arrange
+      final cachedWeather = WeatherModel(
+        cityName: 'Cairo',
+        temperatureCelsius: 30.0,
+        conditionText: 'Sunny',
+        conditionIconUrl: '//cdn.weather.org/sunny.png',
+        humidity: 40,
+        windKph: 15.0,
+        lastUpdated: DateTime(2026, 6, 16),
+        isCached: true,
+      );
+      mockLocalDataSource.lastWeather = cachedWeather;
+
+      // Act
+      final result = await repository.getLastCachedWeather();
+
+      // Assert
+      expect(result, isA<ApiResultSuccess<WeatherEntity?>>());
+      final successResult = result as ApiResultSuccess<WeatherEntity?>;
+      expect(successResult.data?.cityName, 'Cairo');
+      expect(successResult.data?.isCached, isTrue);
+    });
+
+    test('should return null when no cached weather exists', () async {
+      // Arrange
+      mockLocalDataSource.lastWeather = null;
+
+      // Act
+      final result = await repository.getLastCachedWeather();
+
+      // Assert
+      expect(result, isA<ApiResultSuccess<WeatherEntity?>>());
+      final successResult = result as ApiResultSuccess<WeatherEntity?>;
+      expect(successResult.data, isNull);
+    });
+  });
 }

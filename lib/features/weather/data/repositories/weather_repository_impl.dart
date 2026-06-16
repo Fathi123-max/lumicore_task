@@ -55,6 +55,18 @@ class WeatherRepositoryImpl implements WeatherRepository {
   }
 
   @override
+  Future<ApiResult<WeatherEntity?>> getLastCachedWeather() async {
+    try {
+      final cachedWeather = await localDataSource.getLastWeather();
+      return ApiResultSuccess(cachedWeather);
+    } on CacheException catch (e) {
+      return ApiResultFailure(CacheFailure(e.message));
+    } catch (e) {
+      return ApiResultFailure(UnknownFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<ApiResult<List<String>>> getRecentSearches() async {
     try {
       final list = await localDataSource.getRecentSearches();

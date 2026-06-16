@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/core/error/api_result.dart';
+import 'package:weather_app/features/weather/domain/entities/weather_entity.dart';
+import 'package:weather_app/features/weather/domain/use_cases/get_last_cached_weather.dart';
 import 'package:weather_app/features/weather/domain/use_cases/get_recent_searches.dart';
 import 'package:weather_app/features/weather/domain/use_cases/get_weather.dart';
 import 'package:weather_app/features/weather/domain/use_cases/save_recent_search.dart';
@@ -7,11 +9,13 @@ import 'package:weather_app/features/weather/presentation/cubit/weather_state.da
 
 class WeatherCubit extends Cubit<WeatherState> {
   final GetWeatherUseCase getWeatherUseCase;
+  final GetLastCachedWeatherUseCase getLastCachedWeatherUseCase;
   final GetRecentSearchesUseCase getRecentSearchesUseCase;
   final SaveRecentSearchUseCase saveRecentSearchUseCase;
 
   WeatherCubit({
     required this.getWeatherUseCase,
+    required this.getLastCachedWeatherUseCase,
     required this.getRecentSearchesUseCase,
     required this.saveRecentSearchUseCase,
   }) : super(const WeatherInitial(recentSearches: [])) {
@@ -85,9 +89,17 @@ class WeatherCubit extends Cubit<WeatherState> {
         ));
 
       case ApiResultFailure(:final failure):
+        // Attempt to load last cached weather for fallback display
+        WeatherEntity? cachedWeather;
+        final cachedResult = await getLastCachedWeatherUseCase();
+        if (cachedResult is ApiResultSuccess<WeatherEntity?> && cachedResult.data != null) {
+          cachedWeather = cachedResult.data;
+        }
+
         emit(WeatherError(
           message: failure.message,
           recentSearches: previousSearches,
+          cachedWeather: cachedWeather,
         ));
     }
   }
