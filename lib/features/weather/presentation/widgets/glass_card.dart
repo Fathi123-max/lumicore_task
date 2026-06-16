@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:weather_app/core/theme/weather_theme.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -18,7 +19,19 @@ class GlassCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final weatherTheme = theme.extension<WeatherThemeExtension>();
+
+    // Fallbacks in case the theme extension is not present
     final isDark = theme.brightness == Brightness.dark;
+    final fallbackCardColor = theme.colorScheme.surface.withValues(
+      alpha: isDark ? opacity + 0.1 : opacity,
+    );
+    final fallbackBorderColor = theme.colorScheme.onSurface.withValues(
+      alpha: isDark ? 0.12 : 0.25,
+    );
+
+    final cardColor = weatherTheme?.glassCardColor ?? fallbackCardColor;
+    final borderColor = weatherTheme?.glassCardBorderColor ?? fallbackBorderColor;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(28.0),
@@ -27,19 +40,15 @@ class GlassCard extends StatelessWidget {
         child: Container(
           padding: padding,
           decoration: BoxDecoration(
-            color: isDark 
-                ? Colors.black.withOpacity(opacity + 0.1) 
-                : Colors.white.withOpacity(opacity),
+            color: cardColor,
             borderRadius: BorderRadius.circular(28.0),
             border: Border.all(
-              color: isDark 
-                  ? Colors.white.withOpacity(0.12) 
-                  : Colors.white.withOpacity(0.25),
+              color: borderColor,
               width: 1.5,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: theme.colorScheme.shadow.withValues(alpha: 0.08),
                 blurRadius: 24.0,
                 offset: const Offset(0, 8),
               ),

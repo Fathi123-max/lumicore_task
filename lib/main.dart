@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/core/di/service_locator.dart' as di;
+import 'package:weather_app/core/theme/weather_theme.dart';
 import 'package:weather_app/features/weather/presentation/cubit/weather_cubit.dart';
+import 'package:weather_app/features/weather/presentation/cubit/weather_state.dart';
 import 'package:weather_app/features/weather/presentation/pages/weather_page.dart';
 
 void main() async {
@@ -18,34 +20,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'LumiWeather',
-      debugShowCheckedModeBanner: false,
-      
-      // Light Theme configuration
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF4CA1AF),
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        fontFamily: 'Roboto', // Premium standard typography fallback
-      ),
+    return BlocProvider<WeatherCubit>(
+      create: (_) => di.getIt<WeatherCubit>(),
+      child: BlocBuilder<WeatherCubit, WeatherState>(
+        builder: (context, state) {
+          // Extract weather condition to rebuild dynamic themed profiles
+          String condition = 'default';
+          if (state is WeatherLoaded) {
+            condition = state.weather.conditionText;
+          }
 
-      // Dark Theme configuration (Bonus Requirement)
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E2235),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        fontFamily: 'Roboto',
-      ),
-      themeMode: ThemeMode.system, // Respect system light/dark settings
+          final lightTheme = WeatherThemeBuilder.build(
+            condition: condition,
+            brightness: Brightness.light,
+          );
 
-      home: BlocProvider<WeatherCubit>(
-        create: (_) => di.getIt<WeatherCubit>(),
-        child: const WeatherPage(),
+          final darkTheme = WeatherThemeBuilder.build(
+            condition: condition,
+            brightness: Brightness.dark,
+          );
+
+          return MaterialApp(
+            title: 'LumiWeather',
+            debugShowCheckedModeBanner: false,
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: ThemeMode.system,
+            home: const WeatherPage(),
+          );
+        },
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:weather_app/core/theme/weather_theme.dart';
 import 'package:weather_app/features/weather/domain/entities/weather_entity.dart';
 import 'package:weather_app/features/weather/presentation/cubit/weather_cubit.dart';
 import 'package:weather_app/features/weather/presentation/cubit/weather_state.dart';
@@ -32,56 +33,46 @@ class _WeatherPageState extends State<WeatherPage> {
     }
   }
 
-  // Determine background gradient based on weather condition text
-  List<Color> _getBackgroundGradient(String condition, bool isDark) {
-    final cond = condition.toLowerCase();
-    
-    if (isDark) {
-      // Sleek dark modes based on weather condition
-      if (cond.contains('sunny') || cond.contains('clear')) {
-        return [const Color(0xFF1A1C29), const Color(0xFF233550)]; // Clear Night
-      } else if (cond.contains('rain') || cond.contains('drizzle') || cond.contains('shower')) {
-        return [const Color(0xFF0F1524), const Color(0xFF1D283C)]; // Rainy Night
-      } else if (cond.contains('snow') || cond.contains('blizzard') || cond.contains('sleet')) {
-        return [const Color(0xFF161E2E), const Color(0xFF2C3E50)]; // Snowy Night
-      } else {
-        return [const Color(0xFF0F111E), const Color(0xFF1E2235)]; // Cloudy/Default Night
-      }
-    } else {
-      // Warm, vibrant gradients for light mode
-      if (cond.contains('sunny') || cond.contains('clear')) {
-        return [const Color(0xFFFF8008), const Color(0xFF00C6FF)]; // Warm sunrise
-      } else if (cond.contains('rain') || cond.contains('drizzle') || cond.contains('shower')) {
-        return [const Color(0xFF5B6467), const Color(0xFF8B939A)]; // Misty overcast
-      } else if (cond.contains('snow') || cond.contains('blizzard') || cond.contains('sleet')) {
-        return [const Color(0xFFE6DADA), const Color(0xFF274046)]; // Ice cold
-      } else {
-        return [const Color(0xFF4CA1AF), const Color(0xFF2C3E50)]; // Elegant teal/slate
-      }
-    }
-  }
-
   String _formatTime(DateTime dateTime) {
     final hour = dateTime.hour.toString().padLeft(2, '0');
     final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final timeStr = '$hour:$minute';
+    
+    final localDateTime = dateTime.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final dateToCheck = DateTime(localDateTime.year, localDateTime.month, localDateTime.day);
+    
+    if (dateToCheck == today) {
+      return timeStr;
+    } else {
+      final difference = today.difference(dateToCheck).inDays;
+      if (difference == 1) {
+        return 'Yesterday at $timeStr';
+      } else if (difference > 1 && difference <= 7) {
+        return '$difference days ago at $timeStr';
+      } else {
+        final day = localDateTime.day.toString().padLeft(2, '0');
+        final month = localDateTime.month.toString().padLeft(2, '0');
+        return '$day/$month/${localDateTime.year} at $timeStr';
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final weatherTheme = theme.extension<WeatherThemeExtension>();
+
+    // Fallback gradient in case theme extension is not set
+    final fallbackGradient = theme.brightness == Brightness.dark
+        ? const [Color(0xFF0F111E), Color(0xFF1E2235)]
+        : const [Color(0xFFE0F7FA), Color(0xFF80DEEA)];
+
+    final gradientColors = weatherTheme?.gradientColors ?? fallbackGradient;
 
     return BlocBuilder<WeatherCubit, WeatherState>(
       builder: (context, state) {
-        // Find a representative weather condition string to shift gradient
-        String conditionText = 'default';
-        if (state is WeatherLoaded) {
-          conditionText = state.weather.conditionText;
-        }
-
-        final gradientColors = _getBackgroundGradient(conditionText, isDark);
-
         return Scaffold(
           extendBodyBehindAppBar: true,
           body: AnimatedContainer(
@@ -115,7 +106,7 @@ class _WeatherPageState extends State<WeatherPage> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Styled App Header
-                            _buildHeader(isDark),
+                            _buildHeader(theme),
                             const SizedBox(height: 24),
 
                             // Search bar
@@ -144,13 +135,13 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader(ThemeData theme) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
           Icons.wb_sunny_rounded,
-          color: isDark ? const Color(0xFFFFD700) : Colors.white,
+          color: theme.brightness == Brightness.dark ? const Color(0xFFFFD700) : theme.colorScheme.primary,
           size: 32,
         ),
         const SizedBox(width: 12),
@@ -160,11 +151,11 @@ class _WeatherPageState extends State<WeatherPage> {
             fontSize: 24,
             fontWeight: FontWeight.w900,
             letterSpacing: 2.0,
-            color: isDark ? Colors.white : Colors.white,
-            shadows: const [
+            color: theme.colorScheme.onSurface,
+            shadows: [
               Shadow(
-                color: Colors.black26,
-                offset: Offset(0, 2),
+                color: theme.colorScheme.shadow.withValues(alpha: 0.15),
+                offset: const Offset(0, 2),
                 blurRadius: 4,
               ),
             ],
@@ -177,12 +168,10 @@ class _WeatherPageState extends State<WeatherPage> {
   Widget _buildSearchBar(ThemeData theme, bool isLoading) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
-            ? Colors.black.withOpacity(0.3)
-            : Colors.white.withOpacity(0.25),
+        color: theme.colorScheme.surface.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: Colors.white.withOpacity(0.2),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
           width: 1.5,
         ),
       ),
@@ -192,25 +181,25 @@ class _WeatherPageState extends State<WeatherPage> {
         enabled: !isLoading,
         textInputAction: TextInputAction.search,
         onSubmitted: (_) => _onSearchSubmitted(),
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: 'Search city...',
-          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
-          prefixIcon: const Icon(Icons.search, color: Colors.white70),
+          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+          prefixIcon: Icon(Icons.search, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
           suffixIcon: isLoading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 20,
                   height: 20,
                   child: Padding(
-                    padding: EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                     ),
                   ),
                 )
               : IconButton(
-                  icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white70),
+                  icon: Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
                   onPressed: _onSearchSubmitted,
                 ),
           border: InputBorder.none,
@@ -226,13 +215,12 @@ class _WeatherPageState extends State<WeatherPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 4.0, bottom: 8.0),
+        Padding(
+          padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
           child: Text(
             'RECENT SEARCHES',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               fontWeight: FontWeight.bold,
               letterSpacing: 0.5,
             ),
@@ -247,7 +235,7 @@ class _WeatherPageState extends State<WeatherPage> {
             itemBuilder: (context, index) {
               final city = searches[index];
               return Material(
-                color: Colors.white.withOpacity(0.15),
+                color: theme.colorScheme.surface.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(18),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(18),
@@ -260,14 +248,14 @@ class _WeatherPageState extends State<WeatherPage> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
                     child: Text(
                       city,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w600,
                         fontSize: 13,
                       ),
@@ -286,7 +274,7 @@ class _WeatherPageState extends State<WeatherPage> {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 300),
       child: switch (state) {
-        WeatherInitial() => _buildWelcomeCard(key: const ValueKey('welcome')),
+        WeatherInitial() => _buildWelcomeCard(theme, key: const ValueKey('welcome')),
         WeatherLoading() => const GlassCard(
             key: ValueKey('loading'),
             child: ShimmerLoading(),
@@ -307,7 +295,7 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  Widget _buildWelcomeCard({Key? key}) {
+  Widget _buildWelcomeCard(ThemeData theme, {Key? key}) {
     return GlassCard(
       key: key,
       child: Center(
@@ -317,24 +305,22 @@ class _WeatherPageState extends State<WeatherPage> {
             Icon(
               Icons.cloud_queue_rounded,
               size: 80,
-              color: Colors.white70,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Text(
               'Welcome to LumiWeather!',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
+              style: theme.textTheme.titleLarge?.copyWith(
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Enter a city name above to view current weather conditions.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ],
@@ -353,7 +339,7 @@ class _WeatherPageState extends State<WeatherPage> {
       key: key,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (isFromCache) _buildCacheWarning(weather.lastUpdated),
+        if (isFromCache) _buildCacheWarning(weather.lastUpdated, theme),
         const SizedBox(height: 8),
         Expanded(
           child: GlassCard(
@@ -365,10 +351,9 @@ class _WeatherPageState extends State<WeatherPage> {
                 Text(
                   weather.cityName.toUpperCase(),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 28,
+                  style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w900,
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                     letterSpacing: 1.5,
                   ),
                 ),
@@ -383,19 +368,18 @@ class _WeatherPageState extends State<WeatherPage> {
                         iconUrl,
                         width: 76,
                         height: 76,
-                        errorBuilder: (context, error, stackTrace) => const Icon(
+                        errorBuilder: (context, error, stackTrace) => Icon(
                           Icons.wb_cloudy_outlined,
                           size: 64,
-                          color: Colors.white70,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     const SizedBox(width: 8),
                     Text(
                       '${weather.temperatureCelsius.toStringAsFixed(1)}°C',
-                      style: const TextStyle(
-                        fontSize: 64,
+                      style: theme.textTheme.displayLarge?.copyWith(
                         fontWeight: FontWeight.w200,
-                        color: Colors.white,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -406,10 +390,9 @@ class _WeatherPageState extends State<WeatherPage> {
                 Text(
                   weather.conditionText,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
+                  style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFE5EAF5),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -419,9 +402,8 @@ class _WeatherPageState extends State<WeatherPage> {
                   Text(
                     'Last updated: ${_formatTime(weather.lastUpdated)}',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.6),
-                      fontSize: 12,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
 
@@ -435,11 +417,13 @@ class _WeatherPageState extends State<WeatherPage> {
                       icon: Icons.water_drop_rounded,
                       label: 'Humidity',
                       value: '${weather.humidity}%',
+                      theme: theme,
                     ),
                     _buildDetailItem(
                       icon: Icons.air_rounded,
                       label: 'Wind Speed',
                       value: '${weather.windKph.toStringAsFixed(1)} km/h',
+                      theme: theme,
                     ),
                   ],
                 ),
@@ -451,29 +435,29 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  Widget _buildCacheWarning(DateTime lastUpdated) {
+  Widget _buildCacheWarning(DateTime lastUpdated, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.2),
+        color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.amber.withOpacity(0.4),
+          color: theme.colorScheme.tertiary.withValues(alpha: 0.4),
           width: 1,
         ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.cloud_off_rounded, color: Colors.amber, size: 24),
+          Icon(Icons.cloud_off_rounded, color: theme.colorScheme.tertiary, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Offline Mode',
                   style: TextStyle(
-                    color: Colors.amber,
+                    color: theme.colorScheme.tertiary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -481,7 +465,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 Text(
                   'Showing last cached weather from ${_formatTime(lastUpdated)}',
                   style: TextStyle(
-                    color: Colors.amber.shade200,
+                    color: theme.colorScheme.onTertiaryContainer,
                     fontSize: 12,
                   ),
                 ),
@@ -493,37 +477,40 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  Widget _buildDetailItem({required IconData icon, required String label, required String value}) {
+  Widget _buildDetailItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required ThemeData theme,
+  }) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8.0),
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: theme.colorScheme.surface.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Colors.white.withOpacity(0.05),
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
             width: 1,
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.white70, size: 28),
+            Icon(icon, color: theme.colorScheme.onSurface.withValues(alpha: 0.7), size: 28),
             const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 12,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -544,17 +531,16 @@ class _WeatherPageState extends State<WeatherPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
-                color: Colors.redAccent,
+                color: theme.colorScheme.error,
                 size: 48,
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Something went wrong',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -562,9 +548,8 @@ class _WeatherPageState extends State<WeatherPage> {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 13,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -574,14 +559,13 @@ class _WeatherPageState extends State<WeatherPage> {
         // Show cached weather underneath error, if available
         if (cachedWeather != null) ...[
           const SizedBox(height: 16),
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
               'Last Cached Weather:',
-              style: TextStyle(
-                color: Colors.white70,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
               ),
             ),
           ),
