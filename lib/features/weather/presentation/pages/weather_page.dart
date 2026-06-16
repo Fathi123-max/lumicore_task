@@ -283,16 +283,33 @@ class _WeatherPageState extends State<WeatherPage> {
   }
 
   Widget _buildWeatherContent(WeatherState state, ThemeData theme) {
-    return switch (state) {
-      WeatherInitial() => _buildWelcomeCard(),
-      WeatherLoading() => const GlassCard(child: ShimmerLoading()),
-      WeatherLoaded(:final weather, :final isFromCache) => _buildWeatherDetails(weather, isFromCache, theme),
-      WeatherError(:final message, :final cachedWeather) => _buildErrorCard(message, cachedWeather, theme),
-    };
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 300),
+      child: switch (state) {
+        WeatherInitial() => _buildWelcomeCard(key: const ValueKey('welcome')),
+        WeatherLoading() => const GlassCard(
+            key: ValueKey('loading'),
+            child: ShimmerLoading(),
+          ),
+        WeatherLoaded(:final weather, :final isFromCache) => _buildWeatherDetails(
+            weather,
+            isFromCache,
+            theme,
+            key: const ValueKey('loaded'),
+          ),
+        WeatherError(:final message, :final cachedWeather) => _buildErrorCard(
+            message,
+            cachedWeather,
+            theme,
+            key: const ValueKey('error'),
+          ),
+      },
+    );
   }
 
-  Widget _buildWelcomeCard() {
-    return const GlassCard(
+  Widget _buildWelcomeCard({Key? key}) {
+    return GlassCard(
+      key: key,
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -326,13 +343,14 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  Widget _buildWeatherDetails(WeatherEntity weather, bool isFromCache, ThemeData theme) {
+  Widget _buildWeatherDetails(WeatherEntity weather, bool isFromCache, ThemeData theme, {Key? key}) {
     // Standardize URL schema
     final iconUrl = weather.conditionIconUrl.startsWith('http')
         ? weather.conditionIconUrl
         : 'https:${weather.conditionIconUrl}';
 
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (isFromCache) _buildCacheWarning(weather.lastUpdated),
@@ -515,8 +533,9 @@ class _WeatherPageState extends State<WeatherPage> {
     );
   }
 
-  Widget _buildErrorCard(String message, WeatherEntity? cachedWeather, ThemeData theme) {
+  Widget _buildErrorCard(String message, WeatherEntity? cachedWeather, ThemeData theme, {Key? key}) {
     return Column(
+      key: key,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Error Box

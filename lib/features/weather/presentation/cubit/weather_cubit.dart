@@ -16,6 +16,7 @@ class WeatherCubit extends Cubit<WeatherState> {
     required this.saveRecentSearchUseCase,
   }) : super(const WeatherInitial(recentSearches: [])) {
     loadRecentSearches();
+    fetchWeather('Dubai');
   }
 
   Future<void> loadRecentSearches() async {
