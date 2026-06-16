@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:weather_app/core/theme/weather_theme.dart';
@@ -17,20 +20,44 @@ class WeatherPage extends StatefulWidget {
 class _WeatherPageState extends State<WeatherPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  late final StreamSubscription<List<ConnectivityResult>> _connectivitySubscription;
+  bool _isSearchEmptyError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      if (results.any((result) => result != ConnectivityResult.none)) {
+        if (mounted) {
+          final state = context.read<WeatherCubit>().state;
+          if (state is WeatherError && state.cachedWeather != null) {
+            context.read<WeatherCubit>().fetchWeather(state.cachedWeather!.cityName);
+          } else if (state is WeatherLoaded && state.isFromCache) {
+            context.read<WeatherCubit>().fetchWeather(state.weather.cityName);
+          }
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _connectivitySubscription.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
 
   void _onSearchSubmitted() {
-    final city = _searchController.text;
-    if (city.isNotEmpty) {
-      context.read<WeatherCubit>().fetchWeather(city);
-      _searchFocusNode.unfocus();
+    final city = _searchController.text.trim();
+    if (city.isEmpty) {
+      setState(() {
+        _isSearchEmptyError = true;
+      });
+      return;
     }
+    context.read<WeatherCubit>().fetchWeather(city);
+    _searchFocusNode.unfocus();
   }
 
   String _formatTime(DateTime dateTime) {
@@ -166,46 +193,71 @@ class _WeatherPageState extends State<WeatherPage> {
   }
 
   Widget _buildSearchBar(ThemeData theme, bool isLoading) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withValues(alpha: 0.25),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.2),
-          width: 1.5,
-        ),
-      ),
-      child: TextField(
-        controller: _searchController,
-        focusNode: _searchFocusNode,
-        enabled: !isLoading,
-        textInputAction: TextInputAction.search,
-        onSubmitted: (_) => _onSearchSubmitted(),
-        style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w500),
-        decoration: InputDecoration(
-          hintText: 'Search city...',
-          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
-          prefixIcon: Icon(Icons.search, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-          suffixIcon: isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: _isSearchEmptyError
+                  ? theme.colorScheme.error.withValues(alpha: 0.8)
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.2),
+              width: _isSearchEmptyError ? 2.0 : 1.5,
+            ),
+          ),
+          child: TextField(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            enabled: !isLoading,
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) => _onSearchSubmitted(),
+            onChanged: (value) {
+              if (_isSearchEmptyError && value.trim().isNotEmpty) {
+                setState(() {
+                  _isSearchEmptyError = false;
+                });
+              }
+            },
+            style: TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w500),
+            decoration: InputDecoration(
+              hintText: 'Search city...',
+              hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+              prefixIcon: Icon(Icons.search, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+              suffixIcon: isLoading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                        ),
+                      ),
+                    )
+                  : IconButton(
+                      icon: Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                      onPressed: _onSearchSubmitted,
                     ),
-                  ),
-                )
-              : IconButton(
-                  icon: Icon(Icons.arrow_forward_rounded, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
-                  onPressed: _onSearchSubmitted,
-                ),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            ),
+          ),
         ),
-      ),
+        if (_isSearchEmptyError)
+          Padding(
+            padding: const EdgeInsets.only(left: 16.0, top: 8.0),
+            child: Text(
+              'Please enter a city name',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+      ],
     );
   }
 

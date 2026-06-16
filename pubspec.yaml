@@ -49,6 +49,7 @@ dependencies:
 
   # Shimmer effect for loading UI
   shimmer: ^3.0.0
+  connectivity_plus: ^7.1.1
 
 dev_dependencies:
   flutter_test:
