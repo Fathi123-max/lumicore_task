@@ -15,17 +15,34 @@ class WeatherCubit extends Cubit<WeatherState> {
     required this.getRecentSearchesUseCase,
     required this.saveRecentSearchUseCase,
   }) : super(const WeatherInitial(recentSearches: [])) {
-    loadRecentSearches();
-    fetchWeather('Dubai');
+    initApp();
   }
 
-  Future<void> loadRecentSearches() async {
-    final result = await getRecentSearchesUseCase();
-    switch (result) {
-      case ApiResultSuccess(:final data):
-        emit(WeatherInitial(recentSearches: data));
-      case ApiResultFailure():
-        emit(WeatherInitial(recentSearches: state.recentSearches));
+  Future<void> initApp() async {
+    final recentResult = await getRecentSearchesUseCase();
+    final searches = switch (recentResult) {
+      ApiResultSuccess(:final data) => data,
+      ApiResultFailure() => const <String>[],
+    };
+
+    if (searches.isNotEmpty) {
+      emit(WeatherLoading(recentSearches: searches));
+      final result = await getWeatherUseCase(searches.first);
+      switch (result) {
+        case ApiResultSuccess(:final data):
+          emit(WeatherLoaded(
+            weather: data,
+            recentSearches: searches,
+            isFromCache: data.isCached,
+          ));
+        case ApiResultFailure(:final failure):
+          emit(WeatherError(
+            message: failure.message,
+            recentSearches: searches,
+          ));
+      }
+    } else {
+      emit(WeatherInitial(recentSearches: searches));
     }
   }
 
