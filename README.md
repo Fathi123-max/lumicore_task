@@ -15,9 +15,11 @@ A premium, highly responsive Flutter Weather Application designed with **Clean A
 ### 🎬 App Demo Preview
 Here is a complete screen recording demonstrating dynamic weather transitions, light/dark theme synchronization, validation, pull-to-refresh, error states, and offline cache fallbacks:
 
-<div align="center">
-  <video src="https://github.com/Fathi123-max/lumicore_task/raw/master/assets/2026-06-17%2012-02-52.mp4" width="320" controls></video>
-</div>
+*   [**▶️ Watch the App Demo Video (Opens GitHub's Native Player)**](https://github.com/Fathi123-max/lumicore_task/blob/master/assets/2026-06-17%2012-02-52.mp4)
+
+*(Note: Clicking the link above will open the video directly in GitHub's native web media player. Below is the inline preview)*
+
+![App Demo Video](assets/2026-06-17%2012-02-52.mp4)
 
 ### 📥 Direct App Download
 You can download and install the build directly from this repository:
