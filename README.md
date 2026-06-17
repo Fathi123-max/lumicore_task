@@ -12,25 +12,19 @@ A premium, highly responsive Flutter Weather Application designed with **Clean A
 
 ## 📸 Presentation & Visual Deliverables
 
-### 🎬 App Demo Video Clickable Preview
-Click the dynamic preview thumbnail below to stream or download the video directly (this bypasses GitHub's file viewer size limitation):
+### 🎬 App Demo Preview
+Here is a complete screen recording demonstrating dynamic weather transitions, light/dark theme synchronization, validation, pull-to-refresh, error states, and offline cache fallbacks:
 
 <div align="center">
-  <a href="https://github.com/Fathi123-max/lumicore_task/raw/master/assets/2026-06-17%2012-02-52.mp4">
-    <img src="assets/video_thumbnail.png" width="360" alt="Watch App Demo Video" />
-  </a>
+  <video src="https://github.com/Fathi123-max/lumicore_task/releases/download/v1.0.0/demo_recording.mp4" width="320" controls></video>
 </div>
 
-> [!TIP]
-> **To enable a 100% inline playable video directly on this page:**
-> 1. Go to your GitHub repository in your web browser.
-> 2. Open any new issue (or edit a comment/PR) and drag-and-drop the video file `assets/2026-06-17 12-02-52.mp4` into the text box.
-> 3. GitHub will upload the video to its asset storage and generate a markdown URL like `https://github.com/user-attachments/assets/xxxx-xxxx-xxxx`.
-> 4. Replace the link in this `README.md` with that URL, and the video player will render and stream directly inline on the repository front page!
+*Or, if your browser does not support inline playback, click below to watch or download:*
+*   [**▶️ Click here to download/play the demo video**](https://github.com/Fathi123-max/lumicore_task/releases/download/v1.0.0/demo_recording.mp4)
 
 ### 📥 Direct App Download
 You can download and install the build directly from this repository:
-*   [**Download app-release.apk**](https://github.com/Fathi123-max/lumicore_task/raw/master/app-release.apk)
+*   [**Download app-release.apk**](https://github.com/Fathi123-max/lumicore_task/releases/download/v1.0.0/app-release.apk)
 
 ---
 
