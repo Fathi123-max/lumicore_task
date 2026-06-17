@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
 import 'package:weather_app/core/error/api_result.dart';
 import 'package:weather_app/core/error/failure.dart';
 import 'package:weather_app/features/weather/domain/entities/weather_entity.dart';
@@ -13,10 +14,21 @@ class MockRemoteDataSource implements WeatherRemoteDataSource {
   WeatherModel? weatherResult;
   Exception? exceptionToThrow;
   String? queriedCity;
+  int callCount = 0;
+
+  /// If set, this exception is thrown only on the first call.
+  /// Subsequent calls fall through to [exceptionToThrow] or [weatherResult].
+  Exception? firstCallException;
 
   @override
   Future<WeatherModel> getWeather(String cityName) async {
     queriedCity = cityName;
+    callCount++;
+
+    if (firstCallException != null && callCount == 1) {
+      throw firstCallException!;
+    }
+
     if (exceptionToThrow != null) throw exceptionToThrow!;
     if (weatherResult != null) return weatherResult!;
     throw const ServerException('Default remote error');
@@ -182,6 +194,63 @@ void main() {
       expect(result, isA<ApiResultSuccess<WeatherEntity?>>());
       final successResult = result as ApiResultSuccess<WeatherEntity?>;
       expect(successResult.data, isNull);
+    });
+  });
+
+  group('ClientException retry', () {
+    test('should retry once and return fresh data when ClientException is transient', () async {
+      // Arrange — first call throws ClientException, retry succeeds
+      mockRemoteDataSource.firstCallException = http.ClientException('Connection reset');
+      mockRemoteDataSource.weatherResult = testWeather;
+
+      // Act
+      final result = await repository.getWeather('Cairo');
+
+      // Assert — retry succeeded, fresh data returned
+      expect(result, isA<ApiResultSuccess<WeatherEntity>>());
+      final successResult = result as ApiResultSuccess<WeatherEntity>;
+      expect(successResult.data.isCached, isFalse);
+      expect(successResult.data.cityName, 'Cairo');
+      expect(mockRemoteDataSource.callCount, 2);
+    });
+
+    test('should fall back to cache when retry also fails with ClientException', () async {
+      // Arrange — all calls throw ClientException (truly offline)
+      mockRemoteDataSource.exceptionToThrow = http.ClientException('No internet');
+      final cachedWeather = WeatherModel(
+        cityName: 'Cairo',
+        temperatureCelsius: 30.0,
+        conditionText: 'Sunny',
+        conditionIconUrl: '//cdn.weather.org/sunny.png',
+        humidity: 40,
+        windKph: 15.0,
+        lastUpdated: DateTime(2026, 6, 16),
+        isCached: true,
+      );
+      mockLocalDataSource.lastWeather = cachedWeather;
+
+      // Act
+      final result = await repository.getWeather('Cairo');
+
+      // Assert — falls back to cached data after retry fails
+      expect(result, isA<ApiResultSuccess<WeatherEntity>>());
+      final successResult = result as ApiResultSuccess<WeatherEntity>;
+      expect(successResult.data.isCached, isTrue);
+      expect(mockRemoteDataSource.callCount, 2);
+    });
+
+    test('should return NetworkFailure when retry fails and no cache exists', () async {
+      // Arrange — all calls fail, no cache
+      mockRemoteDataSource.exceptionToThrow = http.ClientException('No internet');
+      mockLocalDataSource.lastWeather = null;
+
+      // Act
+      final result = await repository.getWeather('Cairo');
+
+      // Assert
+      expect(result, isA<ApiResultFailure<WeatherEntity>>());
+      final failureResult = result as ApiResultFailure<WeatherEntity>;
+      expect(failureResult.failure, isA<NetworkFailure>());
     });
   });
 }
