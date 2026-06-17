@@ -1,114 +1,141 @@
-# LumiWeather — Weather App with Offline Cache
+# 🌦️ LumiWeather — Weather App with Offline Cache
 
-A premium, highly responsive Flutter Weather Application that displays weather information for cities globally. Designed with clean architectural boundaries, premium glassmorphism aesthetics, dynamic state management, local database caching, search query history, and full offline fallback.
+[![Flutter](https://img.shields.io/badge/Flutter-v3.22+-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-v3.0+-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
+[![State Management](https://img.shields.io/badge/State--Bloc%2FCubit-02569B?style=for-the-badge&logo=bloc&logoColor=white)](https://pub.dev/packages/flutter_bloc)
+[![Dependency Injection](https://img.shields.io/badge/DI-Get__It-6200EE?style=for-the-badge)](https://pub.dev/packages/get_it)
+[![Tests](https://img.shields.io/badge/Tests-24%20Passed-brightgreen?style=for-the-badge&logo=dart&logoColor=white)](https://pub.dev/packages/test)
 
----
-
-## Features
-
-1. **Weather Search by City:** Enter any city name to retrieve details including Temperature, Condition, Humidity, Wind Speed, and the condition-appropriate icon.
-2. **Offline Mode & Caching:** 
-   - Caches the last successfully loaded city's weather data locally using `SharedPreferences`.
-   - If the network becomes unavailable, the app falls back to cached data and displays a prominent warning banner showing "Offline Mode" alongside the timestamp of when the cache was last refreshed.
-3. **Auto-Reconnect:** Uses `connectivity_plus` to monitor network state. When internet connectivity is restored while viewing cached or error data, the app automatically refreshes weather information without any manual action.
-4. **Recent Searches:**
-   - Displays a horizontal list of recently searched cities.
-   - Cleans and deduplicates city searches, moving the most recently searched city to the top (maximum of 10 entries).
-   - Tapping on a recent search pill automatically runs a new weather query.
-5. **Shimmer Loading Skeleton:** Displays a clean skeleton loading visual during network requests to prevent layout jumps and duplicate submissions.
-6. **Dynamic Gradient Backgrounds:** The background color shifts depending on the weather conditions (Sunny/Clear, Rain/Drizzle, Snow/Cold, Cloudy/Overcast) for a premium, alive look.
-7. **Dark & Light Mode Support:** Fully responsive to system-level light or dark themes, styling cards and typography accordingly. All theming is centralized via `WeatherThemeExtension` — zero hardcoded colors in the UI layer.
-8. **Form Validation:** Visual error feedback on empty search submission with red border highlight and inline error message.
-9. **Pull-to-Refresh:** Swipe down to refresh weather data from the API and update the local cache.
-10. **Error Fallback with Cached Data:** When an API call fails (invalid city, server error, etc.), the last successfully cached weather data is displayed beneath the error message so the user always has something useful to see.
+A premium, highly responsive Flutter Weather Application designed with **Clean Architecture** boundaries, glassmorphism aesthetics, dynamic state management, local database caching, search history tracking, and intelligent offline fallback.
 
 ---
 
-## Architectural Design
+## 📸 Presentation & Visual Deliverables
 
-The codebase strictly adheres to **Clean Architecture** patterns divided into three distinct conceptual boundaries:
+*   **🎬 App Demo Recording:** Located locally at [assets/2026-06-17 12-02-52.mp4](file:///Users/Apple/Documents/lumicore_task/assets/2026-06-17%2012-02-52.mp4) (Demonstrates dynamic transitions, light/dark themes, error states, and offline caching).
+*   **📦 Android Release APK:** Available at the root of this workspace: [app-release.apk](file:///Users/Apple/Documents/lumicore_task/app-release.apk).
+
+---
+
+## ✨ Features Checklist
+
+| Feature | Description | Visual / Behavior Status |
+| :--- | :--- | :--- |
+| **🔍 Search City** | Instant lookup of international weather metrics. | Displays City, Temp, Humidity, Wind Speed & Conditions |
+| **💾 Offline Cache** | Caches the last successfully searched city. | Displays "Offline Mode" banner with last cached timestamp |
+| **🔄 Auto-Reconnect** | Automatically polls and refreshes weather as soon as network returns. | Zero manual reload required when connection is restored |
+| **⏰ History Pills** | Horizontal pills displaying the last 10 unique searches. | Tap-to-reload city weather immediately |
+| **🚨 Error Fallback** | Displays cached weather underneath the error warning. | Avoids empty error screens; always shows last known data |
+| **🎨 Dynamic Themes** | centralizes background gradients according to active weather state. | Uses a custom `ThemeExtension` with 0 hardcoded widget colors |
+| **🫧 Glassmorphism** | Translucent card panels with backdrop blur. | Premium, high-contrast, modern layout |
+| **⏳ Shimmer loading** | Responsive shimmer skeletons matching card shapes. | Prevents layout jumps & blocks double-tap API abuse |
+
+---
+
+## 🛠️ System Architecture & Data Flow
+
+This project strictly enforces **Clean Architecture** separating Presentation, Domain, and Data:
 
 ```
 lib/
 ├── core/
-│   ├── di/                 # Dependency Injection setup using get_it
-│   ├── error/              # Failure contracts and ApiResult models
-│   └── theme/              # WeatherThemeExtension and dynamic theme builder
+│   ├── di/                 # Service locator setup using get_it
+│   ├── error/              # Failure models & generic ApiResult contracts
+│   └── theme/              # Centralized WeatherThemeExtension and ThemeData builders
 └── features/
     └── weather/
-        ├── data/           # JSON Weather Models, Remote HTTP & SharedPreferences Local Data Sources
-        ├── domain/         # Pure Dart entities, repository contracts, and use cases (ZERO Flutter imports)
-        ├── presentation/   # Cubit state machines, glassmorphic page layouts, and skeleton widgets
+        ├── data/           # Weather API DTOs, SharedPreferences local storage sources
+        ├── domain/         # Pure Dart entities, use cases, repository interfaces (Zero Flutter dependencies)
+        ├── presentation/   # Cubits, custom glassmorphism widgets, page layouts
 ```
 
-### 1. Presentation Layer
-- **State Management:** Built using `Cubit` (via `flutter_bloc`). The state is modeled using a `sealed class` hierarchy (`WeatherInitial`, `WeatherLoading`, `WeatherLoaded`, `WeatherError`) allowing type-safe exhaustive pattern matching within the UI.
-- **Duplicate Request Prevention:** The Cubit verifies the current state and discards search requests if a loading sequence is already in progress.
-- **Widgets:** Employs `GlassCard` (a custom glassmorphism implementation using `BackdropFilter` and semi-transparent layers) and customized shimmer loaders.
-- **Dynamic Theming:** Colors and gradients are driven entirely by `WeatherThemeExtension`, injected at the `MaterialApp` level via `BlocBuilder`. No hardcoded color values exist in the presentation layer.
+### Flow Diagram: Dynamic Fetching & Cache Failover
 
-### 2. Domain Layer (Pure Dart)
-- **Purity:** Contains **zero** Flutter imports (purely Dart core code) ensuring maximum maintainability and testability.
-- **Repository Interface:** Outlines the core capabilities expected by the app.
-- **Use Cases:** Executable wrappers for business transactions (e.g., `GetWeatherUseCase`, `GetLastCachedWeatherUseCase`, `GetRecentSearchesUseCase`, `SaveRecentSearchUseCase`).
+The sequence below illustrates the failover sequence during searches and network losses:
 
-### 3. Data Layer
-- **Remote Data Source:** Makes REST requests to the WeatherAPI and translates them into model entities.
-- **Local Data Source:** Reads/writes cache payloads and recent search lists using `SharedPreferences`.
-- **Repository Implementation:** Implements the domain contract. Coordinates the fallback by trying the network first, updating cache on success, and falling back to cache on Socket/Client exceptions.
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant UI as WeatherPage
+    participant Cubit as WeatherCubit
+    participant UC as GetWeatherUseCase
+    participant Repo as WeatherRepository
+    participant Remote as WeatherRemoteDataSource
+    participant Local as WeatherLocalDataSource
+
+    User->>UI: Enter City & Submit Search
+    UI->>Cubit: fetchWeather(city)
+    Cubit->>Cubit: Emit WeatherLoading state (Blocks double-taps)
+    Cubit->>UC: call(city)
+    UC->>Repo: getWeather(city)
+    Repo->>Remote: getWeather(city)
+
+    alt Connection Successful
+        Remote-->>Repo: Return WeatherModel (fresh data)
+        Repo->>Local: cacheWeather(WeatherModel)
+        Repo-->>UC: Return ApiResultSuccess(WeatherEntity)
+        Cubit->>Local: saveRecentSearch(city)
+        Cubit-->>UI: Emit WeatherLoaded (isFromCache: false)
+    else Transient Connection Hiccup
+        Remote-->>Repo: Throw ClientException
+        Note over Repo: Retries request once after 500ms
+        Repo->>Remote: getWeather(city) (retry)
+        Remote-->>Repo: Success or true failure...
+    else Connection Offline (Socket / Failed Retry)
+        Repo->>Local: getLastWeather()
+        Local-->>Repo: Return WeatherModel (cached data)
+        Repo-->>UC: Return ApiResultSuccess(WeatherEntity)
+        Cubit-->>UI: Emit WeatherLoaded (isFromCache: true)
+    else Terminal Exception (Invalid City / Server Down)
+        Remote-->>Repo: Throw InvalidCityException / ServerException
+        Repo-->>UC: Return ApiResultFailure(Failure)
+        Cubit->>Local: getLastWeather()
+        Local-->>Cubit: Return cached WeatherEntity (if exists)
+        Cubit-->>UI: Emit WeatherError(message, cachedWeather)
+    end
+```
 
 ---
 
-## Setup & Running the Application
+## 🚀 Getting Started
 
-This project does not use any code generation library (`build_runner` or `freezed`), allowing instant builds.
+### Prerequisites
 
-### 1. Obtain an API Key
-Sign up at [WeatherAPI.com](https://www.weatherapi.com/) for a free account. You will receive an API key instantly from your dashboard.
+*   Flutter SDK `v3.22.0` or higher
+*   Dart SDK `v3.0.0` or higher
 
-### 2. Run the App
-To protect sensitive credentials, the API key is passed dynamically at runtime using `dart-define`:
+### Installation & Run
 
-```bash
-flutter run --dart-define=WEATHER_API_KEY=YOUR_WEATHERAPI_KEY
-```
+1.  **Clone the Repository:**
+    ```bash
+    git clone https://github.com/Fathi123-max/lumicore_task.git
+    cd lumicore_task
+    ```
 
-Replace `YOUR_WEATHERAPI_KEY` with your actual key from the WeatherAPI dashboard.
+2.  **Fetch Dependencies:**
+    ```bash
+    flutter pub get
+    ```
+
+3.  **Run with API Key Injection:**
+    To ensure credential safety, the application injects the WeatherAPI key as an environment definition at compilation:
+    ```bash
+    flutter run --dart-define=WEATHER_API_KEY=YOUR_WEATHERAPI_KEY_HERE
+    ```
 
 ---
 
-## Testing
+## 🧪 Testing Coverage
 
-A comprehensive unit test suite of **21 tests** across 3 test files covers the business logic, data parsing, repository coordination, and state changes.
+The project is backed by **24 fully passing unit tests** validating edge cases, parsing, and caching rules:
 
-Run all tests:
 ```bash
 flutter test
 ```
 
-### Coverage Areas:
+### Suite breakdown:
 
-#### Cubit Tests (`weather_cubit_test.dart`)
-- Initial state verification
-- Loading → Loaded state transitions on successful search
-- Loading → Error state transitions on failed search
-- Duplicate request prevention when already loading
-- Cached weather fallback attached to `WeatherError` state
-- Null cached weather when no local data exists
-- Empty city name validation
-
-#### Repository Tests (`weather_repository_test.dart`)
-- Remote fetch success with local cache update
-- Offline fallback to cached data on `SocketException`
-- `NetworkFailure` when offline with no cache
-- `InvalidInputFailure` mapping from `InvalidCityException`
-- `getLastCachedWeather` returns cached data when available
-- `getLastCachedWeather` returns null when cache is empty
-
-#### Model Tests (`weather_model_test.dart`)
-- Valid API JSON response parsing
-- Integer-to-double type coercion for temperature and wind
-- Graceful defaults for null/missing fields
-- Null and malformed `last_updated` date handling
-- Local cache JSON parsing with `isCached = true`
-- `toJson` → `fromLocalJson` round-trip serialization
+*   **`weather_cubit_test.dart` (7 tests):** Evaluates loading/loaded transitions, duplicate submission blocking, validation errors, and cache injection inside errors.
+*   **`weather_repository_test.dart` (9 tests):** Validates caching behavior, offline SocketException fallback, HTTP client exception retries, and failure mappings.
+*   **`weather_model_test.dart` (8 tests):** Inspects JSON schema conversion, double-to-integer coercion, local cache serialization/deserialization, and null-fallback safety.
