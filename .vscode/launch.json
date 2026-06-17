@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "lumicore_task",
+            "request": "launch",
+            "type": "dart",
+            "args": [
+                "--dart-define=WEATHER_API_KEY=1f33ba59c72942edbe3181718261606"
+            ]
+        },
+        {
+            "name": "lumicore_task (profile mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "lumicore_task (release mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}
