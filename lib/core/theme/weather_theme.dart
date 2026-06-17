@@ -54,17 +54,17 @@ class WeatherThemeBuilder {
 
     if (isDark) {
       if (cond.contains('sunny') || cond.contains('clear')) {
-        seedColor = const Color(0xFF1E2235);
-        gradientColors = [const Color(0xFF1A1C29), const Color(0xFF233550)];
+        seedColor = const Color(0xFFFFB74D); // warm amber — same hue as light
+        gradientColors = [const Color(0xFF261A02), const Color(0xFF5C3D0A)];
       } else if (cond.contains('rain') || cond.contains('drizzle') || cond.contains('shower')) {
-        seedColor = const Color(0xFF0F1524);
-        gradientColors = [const Color(0xFF0F1524), const Color(0xFF1D283C)];
+        seedColor = const Color(0xFF64B5F6); // stormy blue
+        gradientColors = [const Color(0xFF0B1929), const Color(0xFF1A3A5C)];
       } else if (cond.contains('snow') || cond.contains('blizzard') || cond.contains('sleet')) {
-        seedColor = const Color(0xFF161E2E);
-        gradientColors = [const Color(0xFF161E2E), const Color(0xFF2C3E50)];
+        seedColor = const Color(0xFFB39DDB); // icy lavender
+        gradientColors = [const Color(0xFF14102A), const Color(0xFF2E2654)];
       } else {
-        seedColor = const Color(0xFF0F111E);
-        gradientColors = [const Color(0xFF0F111E), const Color(0xFF1E2235)];
+        seedColor = const Color(0xFF4DD0E1); // deep teal
+        gradientColors = [const Color(0xFF061A1E), const Color(0xFF0F3740)];
       }
     } else {
       if (cond.contains('sunny') || cond.contains('clear')) {
