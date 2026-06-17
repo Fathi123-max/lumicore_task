@@ -47,3 +47,5 @@ app.*.map.json
 # Local artifacts and recordings
 /*.apk
 /assets/
+config.bat
+node_modules
